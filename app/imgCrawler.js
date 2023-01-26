@@ -2,7 +2,10 @@ const puppeteer = require('puppeteer');
 const fs  = require('fs');
 
 //Site a vérifier
-const urlList = ['https://www.la-loi-pinel.com/'];
+let websiteUrl
+
+
+const urlList = [`https://${websiteUrl}/`];
 const urlTestedList = [];
 const imgList = [];
 
@@ -40,7 +43,7 @@ function mergeArrays(...arrays) {
                 return getAllUrl(browser, urlList);
             }
             //Gestion de la page actu avec infinite scroll
-            if(url == 'https://www.la-loi-pinel.com/actualites/'){
+            if(url == `https://${websiteUrl}/actualites/`){
                 await page.evaluate(() => new Promise((resolve) => {
                     var scrollTop = -1;
                     const interval = setInterval(() => {
@@ -56,14 +59,14 @@ function mergeArrays(...arrays) {
             }
             await page.waitForSelector('body');
             const allHrefs = await page.evaluate(() =>
-                [...document.querySelectorAll('a[href^="https://www.la-loi-pinel.com/"], a[href^="/"]')].map(link => {
+                [...document.querySelectorAll(`a[href^=https://${websiteUrl}/], a[href^="/"]`)].map(link => {
                     if(link.href.match(/(?!.+\.pdf$).+$/)) link.href
                 })
             );
             const allDataUrls = await page.evaluate(() => 
                     [...document.querySelectorAll('[data-url]')].map(function(element){
                         const dataUrl = element.getAttribute('data-url');
-                            if(dataUrl.includes('la-loi-pinel.com') && !dataUrl.startsWith('#') && !dataUrl.startsWith('mailto') && !dataUrl.includes('linkedin.com') && !dataUrl.includes('facebook.com') && !dataUrl.includes('twitter.com') && !dataUrl.includes('plus.google.com') && !dataUrl.includes('.pdf')){
+                            if(dataUrl.includes(websiteUrl) && !dataUrl.startsWith('#') && !dataUrl.startsWith('mailto') && !dataUrl.includes('linkedin.com') && !dataUrl.includes('facebook.com') && !dataUrl.includes('twitter.com') && !dataUrl.includes('plus.google.com') && !dataUrl.includes('.pdf')){
                                 return dataUrl;
                             } else {
                                 return ;
@@ -132,7 +135,7 @@ scrap()
         console.log(value)
         // fs.writeFileSync('./imgList.txt', value.join ('\n') , {flag: "w"});
         //Write to csv
-        fs.writeFile("imgList.csv", value, "utf-8", (err) => {
+        fs.writeFile("imgList.csv", value.join ('\n'), "utf-8", (err) => {
             if (err) console.log(err);
             else console.log("Data saved");
         });
@@ -140,3 +143,4 @@ scrap()
 
   })
   .catch(e => console.log(`error: ${e}`))
+
