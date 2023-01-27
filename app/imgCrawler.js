@@ -2,10 +2,7 @@ const puppeteer = require('puppeteer');
 const fs  = require('fs');
 
 //Site a vérifier
-let websiteUrl
-
-
-const urlList = [`https://${websiteUrl}/`];
+const urlList = ['https://www.la-loi-pinel.com/'];
 const urlTestedList = [];
 const imgList = [];
 
@@ -43,7 +40,7 @@ function mergeArrays(...arrays) {
                 return getAllUrl(browser, urlList);
             }
             //Gestion de la page actu avec infinite scroll
-            if(url == `https://${websiteUrl}/actualites/`){
+            if(url == 'https://www.la-loi-pinel.com/actualites/'){
                 await page.evaluate(() => new Promise((resolve) => {
                     var scrollTop = -1;
                     const interval = setInterval(() => {
@@ -59,14 +56,14 @@ function mergeArrays(...arrays) {
             }
             await page.waitForSelector('body');
             const allHrefs = await page.evaluate(() =>
-                [...document.querySelectorAll(`a[href^=https://${websiteUrl}/], a[href^="/"]`)].map(link => {
+                [...document.querySelectorAll('a[href^="https://www.la-loi-pinel.com/"], a[href^="/"]')].map(link => {
                     if(link.href.match(/(?!.+\.pdf$).+$/)) link.href
                 })
             );
             const allDataUrls = await page.evaluate(() => 
                     [...document.querySelectorAll('[data-url]')].map(function(element){
                         const dataUrl = element.getAttribute('data-url');
-                            if(dataUrl.includes(websiteUrl) && !dataUrl.startsWith('#') && !dataUrl.startsWith('mailto') && !dataUrl.includes('linkedin.com') && !dataUrl.includes('facebook.com') && !dataUrl.includes('twitter.com') && !dataUrl.includes('plus.google.com') && !dataUrl.includes('.pdf')){
+                            if(dataUrl.includes('la-loi-pinel.com') && !dataUrl.startsWith('#') && !dataUrl.startsWith('mailto') && !dataUrl.includes('linkedin.com') && !dataUrl.includes('facebook.com') && !dataUrl.includes('twitter.com') && !dataUrl.includes('plus.google.com') && !dataUrl.includes('.pdf')){
                                 return dataUrl;
                             } else {
                                 return ;
@@ -116,7 +113,7 @@ function mergeArrays(...arrays) {
     } else {
         console.log("scrap terminé")
         console.log(imgList)
-        return [imgList];
+        return [imgList, urlTestedList];
     }
 }
 
@@ -124,8 +121,9 @@ const scrap = async () => {
     const browser = await puppeteer.launch({ headless: true, args: ['--shm-size=3gb'] });
     const images = await getAllUrl(browser, urlList, imgList);
     console.log('Récupération des images terminée');
-    console.log(images.length)
+    console.log(images[0].length)
     browser.close();
+    console.log(typeof images)
     return images;
 }
 
@@ -135,9 +133,13 @@ scrap()
         console.log(value)
         // fs.writeFileSync('./imgList.txt', value.join ('\n') , {flag: "w"});
         //Write to csv
-        fs.writeFile("imgList.csv", value.join ('\n'), "utf-8", (err) => {
+        fs.writeFile("imgList.csv", value[0].join ('\n'), "utf-8", (err) => {
             if (err) console.log(err);
-            else console.log("Data saved");
+            else console.log("Data img saved");
+        });
+        fs.writeFile("urlList.txt", JSON.stringify(value[1]), "utf-8", (err) => {
+            if (err) console.log(err);
+            else console.log("Data url saved");
         });
 
 

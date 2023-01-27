@@ -4,6 +4,9 @@ const { SlowBuffer } = require('buffer');
 const util = require('util');
 const { url } = require('inspector');
 
+
+
+
 function isBase64(str) {
       try {
           return btoa(atob(str)) == str;
@@ -79,6 +82,7 @@ const checkCss = async (page, arrayCssUsed, arrayCssUnused, styles) => {
 const getAllUrl = async (browser, urlList, urlListCrawled, arrayCssUsed, arrayCssUnused) => {
     if(urlList.length > 0){
         let page = await browser.newPage();
+        await page.setDefaultNavigationTimeout(0);
         const url = urlList.shift();
         let styles = [];
         if(urlListCrawled.includes(url)){
@@ -106,13 +110,13 @@ const getAllUrl = async (browser, urlList, urlListCrawled, arrayCssUsed, arrayCs
         }
         await page.waitForSelector('body');
         const allHrefs = await page.evaluate(() =>
-            [...document.querySelectorAll(`a[href^=https://${websiteUrl}/], a[href^="/"]`)].map(link => link.href)
+            [...document.querySelectorAll('a[href^="https://www.la-loi-pinel.com/"], a[href^="/"]')].map(link => link.href)
         );
         const allDataUrls = await page.evaluate(() => 
                 [...document.querySelectorAll('[data-url]')].map(function(element){
                     const dataUrl = element.getAttribute('data-url');
                     // if(isBase64(dataUrl) == false){
-                        if(dataUrl.includes(websiteUrl) && !dataUrl.startsWith('#') && !dataUrl.startsWith('mailto') && !dataUrl.includes('linkedin.com') && !dataUrl.includes('facebook.com') && !dataUrl.includes('twitter.com') && !dataUrl.includes('plus.google.com')){
+                        if(dataUrl.includes('www.la-loi-pinel.com') && !dataUrl.startsWith('#') && !dataUrl.startsWith('mailto') && !dataUrl.includes('linkedin.com') && !dataUrl.includes('facebook.com') && !dataUrl.includes('twitter.com') && !dataUrl.includes('plus.google.com')){
                             return dataUrl;
                         } else {
                             return ;
@@ -153,6 +157,7 @@ const getAllStylesheets = async(browser, urlList, stylesUrl, stylesContent) => {
     let newUrlList = [...urlList];
     if(newUrlList.length > 0){
         let page = await browser.newPage();
+        await page.setDefaultNavigationTimeout(0);
         const url = newUrlList.shift();
         page.on('response',async response => {
             if(response.request().resourceType() === 'stylesheet') {
@@ -189,6 +194,7 @@ const verifyCss = async (browser, urlList, stylesContent, arrayCssUnused = [], a
             if(cssUsed != null || cssUsed != undefined){
                 // console.log('\t check du css');
                 let page = await browser.newPage();
+                await page.setDefaultNavigationTimeout(0);
                 const url = newUrlList.shift();
                 console.log('Analyse CSS pour '+url);
                 const cssUsedCleaned = cssUsed.map(className => className.replace(/{/,'').replace(' ',''));
@@ -256,8 +262,8 @@ const scrap = async () => {
     const browser = await puppeteer.launch({ headless: true, args: ['--shm-size=3gb'] });
     let stylesUrl = [];
     let stylesContent = '';
-    let urlList = [];
-    const result = await getAllUrl(browser, urlList, urlListCrawled, arrayCssUsed, arrayCssUnused);
+    let urlList = JSON.parse(fs.readFileSync('./urlList.txt', 'utf8'));;
+    // const result = await getAllUrl(browser, urlList, urlListCrawled, arrayCssUsed, arrayCssUnused);
     // console.log(urlList);
     const stylesheets = await getAllStylesheets(browser, urlList, stylesUrl, stylesContent);
     console.log('Récupération des stylesheets terminée.');
