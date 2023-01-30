@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const fs  = require('fs');
 
 //Site a vérifier
-const urlList = ['https://www.la-loi-pinel.com/'];
+const urlList = ['https://www.la-scpi.immo/'];
 const urlTestedList = [];
 const imgList = [];
 
@@ -40,7 +40,7 @@ function mergeArrays(...arrays) {
                 return getAllUrl(browser, urlList);
             }
             //Gestion de la page actu avec infinite scroll
-            if(url == 'https://www.la-loi-pinel.com/actualites/'){
+            if(url == 'https://www.la-scpi.immo/blog/'){
                 await page.evaluate(() => new Promise((resolve) => {
                     var scrollTop = -1;
                     const interval = setInterval(() => {
@@ -55,21 +55,21 @@ function mergeArrays(...arrays) {
                 }));
             }
             await page.waitForSelector('body');
-            const allHrefs = await page.evaluate(() =>
-                [...document.querySelectorAll('a[href^="https://www.la-loi-pinel.com/"], a[href^="/"]')].map(link => {
-                    if(link.href.match(/(?!.+\.pdf$).+$/)) link.href
+            const allHrefs = await page.evaluate(() => {
+                return Array.from(document.querySelectorAll('a[href^="https://www.la-scpi.immo/"], a[href^="/"]'), link => {
+                    if(link.href.match(/(?!.+\.pdf$).+$/)) return link.href
                 })
-            );
-            const allDataUrls = await page.evaluate(() => 
-                    [...document.querySelectorAll('[data-url]')].map(function(element){
+            });
+            const allDataUrls = await page.evaluate(() => {
+                return Array.from(document.querySelectorAll('[data-url]'), element => {
                         const dataUrl = element.getAttribute('data-url');
-                            if(dataUrl.includes('la-loi-pinel.com') && !dataUrl.startsWith('#') && !dataUrl.startsWith('mailto') && !dataUrl.includes('linkedin.com') && !dataUrl.includes('facebook.com') && !dataUrl.includes('twitter.com') && !dataUrl.includes('plus.google.com') && !dataUrl.includes('.pdf')){
+                            if(dataUrl.includes('la-scpi.immo') && !dataUrl.startsWith('#') && !dataUrl.startsWith('mailto') && !dataUrl.includes('linkedin.com') && !dataUrl.includes('facebook.com') && !dataUrl.includes('twitter.com') && !dataUrl.includes('plus.google.com') && !dataUrl.includes('.pdf')){
                                 return dataUrl;
                             } else {
                                 return ;
                             } 
-                    })    
-            );
+                })    
+            });
             urlList = mergeArrays(urlList,allHrefs,allDataUrls);
 
             //Récupération des images
