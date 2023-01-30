@@ -68,7 +68,7 @@ const getAllUrl = async (browser, websiteUrl, urlList) => {
                 return getAllUrl(browser, websiteUrl, urlList);
             }
             //Gestion de la page actu avec infinite scroll
-            if(url === `https://${websiteUrl}/blog/`){
+            if(url === `https://${websiteUrl}/blog/` || `https://${websiteUrl}/actualites/`){
                 await page.evaluate(() => new Promise((resolve) => {
                     var scrollTop = -1;
                     const interval = setInterval(() => {
