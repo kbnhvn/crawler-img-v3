@@ -16,6 +16,9 @@ node cssCrawler.js (dans le dossier app)
 Bien sûr, vu qu'il y a un package.json, pensez à le lancer auparavant pour générer les node_modules.
 
 ## v3 :
+
+Pour lancer le script : node AioCrawler.js dans le dossier app
+
 + Utilisation de prompt-sync pour gérer les prompt en console.
 + Via la console, le script demande l'url du site à crawler, puis le type de crawl à effectuer (css, images ou les deux).
 + Le script créé un dossier au nom de l'url du site et y stocke les fichiers (liste de classes, d'urls des pages et d'images).
