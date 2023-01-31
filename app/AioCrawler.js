@@ -282,7 +282,7 @@ const checkCss = async (page, arrayCssUsed, arrayCssUnused, styles) => {
     styles.forEach(async function(styleOfCss) {
             const cssUsed = styleOfCss.match(/\.-?[_a-zA-Z]+[_a-zA-Z0-9-]*\s*\{/gm);
             if(cssUsed != null || cssUsed != undefined){
-                // console.log('\t check du css');
+                console.log('\t check du css');
                 let tempClassChecked = [];
                 cssUsed.forEach(async function(cssClassName){
                     const classNamePurified = cssClassName.replace(/{/,'');
