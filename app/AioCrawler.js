@@ -413,11 +413,11 @@ scrap()
             else console.log("classUsed list saved");
         });
         //Write classNotUsed list to csv
-        fs.writeFile(websiteUrl+"/classNotUsedList.txt", JSON.stringify(value[1][0]), "utf-8", (err) => {
+        let notUsed = value[1][0].filter(el => !value[1][1].includes(el));
+        fs.writeFile(websiteUrl+"/classNotUsedList.txt", JSON.stringify(notUsed), "utf-8", (err) => {
             if (err) console.log(err);
             else console.log("classNotUsed list saved");
         });
-
   })
   .catch(e => console.log(`error: ${e}`))
 
