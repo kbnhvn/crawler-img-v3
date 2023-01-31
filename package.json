@@ -1,5 +1,5 @@
 {
-    "name": "slx/crawler",
+    "name": "crawler",
     "description": "Crawler de Classes CSS",
     "keywords": [
         "crawler",
@@ -8,6 +8,10 @@
     "require": {},
     "require-dev": {},
     "dependencies": {
+        "prompt-sync": "^4.2.0",
         "puppeteer": "^5.5.0"
+    },
+    "scripts": {
+        "crawler": "node --max-old-space-size=8192 app/cssCrawler.js"
     }
 }
