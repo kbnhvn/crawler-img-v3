@@ -56,7 +56,6 @@ const getAllUrl = async (browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnu
         let page = await browser.newPage();
         // await page.setDefaultNavigationTimeout(0); 
         const url = urlList.shift();
-        let styles = [];
         if(url){
             if(urlTestedList.includes(url)){
                 return getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused);
@@ -105,10 +104,6 @@ const getAllUrl = async (browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnu
             urlTestedList.push(url)
             console.log('Liste url : '+urlList.length)
             console.log('Liste url finale : '+urlTestedList.length)
-
-            if(task === 'css' || task === 'all'){
-                await checkCss(page, arrayCssUsed, arrayCssUnused, styles);
-            } 
 
             await page.close();
             return getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused);
@@ -346,6 +341,7 @@ const scrap = async () => {
     let stylesContent = '';
     let arrayCssUsed = [];
     let arrayCssUnused = [];
+    let styles = [];
 
     //Créé un dossier
     if (!fs.existsSync(websiteUrl)) {
@@ -373,6 +369,19 @@ const scrap = async () => {
     if(task === 'css' || task === 'all'){
         urlListTemp.forEach(async(url) => {
             let page = await browser.newPage();
+            page.on('response',async response => {
+                if(response.request().resourceType() === 'stylesheet') {
+                    //TODO trycatch par ici je crois ?
+                    const url = await response.url();
+                    try {
+                        const styleContent = await response.text();
+                        styles.push(styleContent);
+                    } catch (error){
+                        console.log('Erreur de lecture de : '+ url);
+                    }
+                    
+                }
+            });
             await page.goto(url);
             await page.waitForSelector('body');
             await checkCss(page, arrayCssUsed, arrayCssUnused, styles);
