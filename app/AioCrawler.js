@@ -360,23 +360,27 @@ const scrap = async () => {
         else console.log("Url list saved");
     });
     
+    let urlListTemp = [];
+    urlListTemp.push(...pages[0]);
+
     //Lancement du script choisi
     if(task === 'img' || task === 'all'){
         images = await crawlImg(browser, pages[0], imgList)
         console.log(images.length)
         console.log(images)
     }
+    
     if(task === 'css' || task === 'all'){
-        pages.forEach(async(url) => {
+        urlListTemp.forEach(async(url) => {
             let page = await browser.newPage();
             await page.goto(url);
             await page.waitForSelector('body');
             await checkCss(page, arrayCssUsed, arrayCssUnused, styles);
         })
-        const stylesheets = await getAllStylesheets(browser, pages[0], stylesUrl, stylesContent);
+        const stylesheets = await getAllStylesheets(browser,urlListTemp, stylesUrl, stylesContent);
         console.log('Récupération des stylesheets terminée.');
         console.log('Début du traitement du style...');
-        verifiedCss = await verifyCss(browser, pages[0], stylesheets[1]);
+        verifiedCss = await verifyCss(browser, urlListTemp, stylesheets[1]);
         console.log('Fin du traitement du style.');
     }
 
