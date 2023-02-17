@@ -10,6 +10,7 @@ const prompt = require('prompt-sync')();
 //Site a vérifier
 let websiteUrl = "";
 let task = "";
+let forceCheckUrl = "";
 
 const urlList = [];
 const urlTestedList = [];
@@ -18,9 +19,14 @@ const imgList = [];
 //Récupération des infos en console
 while(websiteUrl === ""){
     websiteUrl = prompt('URL du site à vérifier ? (sans http/s) : ');
-  }
+}
 while(task === ""){
-  task = prompt('Element à vérifier ? img/css/all : ');
+  task = prompt('Element à vérifier ? pages/img/css/all : ');
+}
+if(fs.existsSync(websiteUrl+"/urlList.txt") && task !== 'pages'){
+    while(forceCheckUrl === ""){
+        forceCheckUrl = prompt('La liste des pages existe. Récupérer de nouveau la liste des pages ? oui/non : ');
+    }
 }
 
 urlList.push('https://'+websiteUrl+'/')
@@ -214,7 +220,6 @@ const verifyCss = async (browser, urlList, stylesContent, arrayCssUnused = [], a
     if(newUrlList.length > 0){
         const cssUsed = stylesContent.match(/\.-?[_a-zA-Z]+[_a-zA-Z0-9-]*\s*\{/gm);
             if(cssUsed != null || cssUsed != undefined){
-                // console.log('\t check du css');
                 let page = await browser.newPage();
                 // await page.setDefaultNavigationTimeout(0);
                 const url = newUrlList.shift();
@@ -282,37 +287,26 @@ const checkCss = async (page, arrayCssUsed, arrayCssUnused, styles) => {
     styles.forEach(async function(styleOfCss) {
             const cssUsed = styleOfCss.match(/\.-?[_a-zA-Z]+[_a-zA-Z0-9-]*\s*\{/gm);
             if(cssUsed != null || cssUsed != undefined){
-                console.log('\t check du css');
                 let tempClassChecked = [];
                 cssUsed.forEach(async function(cssClassName){
                     const classNamePurified = cssClassName.replace(/{/,'');
-                    // console.log('Check de '+classNamePurified);
                     if(arrayCssUsed.includes(classNamePurified) || tempClassChecked.includes(classNamePurified)){
-                        // console.log('déjà dans l array : ' + classNamePurified);
-                        // return;
                     } else {
-                        // console.log('Check selector ' + classNamePurified);
                         tempClassChecked.push(classNamePurified);
                         try {
                             const tests = await page.evaluate(selector =>{
                                 return [...document.querySelectorAll(selector)];
                             }, classNamePurified);
-                            // return process.kill(process.pid);
                             if(tests != undefined && tests.length > 0){
-                                // console.log(classNamePurified + ' ajouté à la liste des CSS utilisés');
                                 arrayCssUsed.push(classNamePurified);
                                 const index = arrayCssUnused.indexOf(classNamePurified);
                                 if (index > -1) {
                                     arrayCssUnused.splice(index, 1);
                                 }
-                                // return;
                             } else {
-                                // console.log(classNamePurified + ' non utilisé');
                                 if(arrayCssUnused.includes(classNamePurified)){
-                                    // return;
                                 } else {
                                     arrayCssUnused.push(classNamePurified);
-                                    // return;
                                 }
                             }
                         } catch(error){
@@ -342,22 +336,27 @@ const scrap = async () => {
     let arrayCssUsed = [];
     let arrayCssUnused = [];
     let styles = [];
+    let urlListTemp = [];
 
     //Créé un dossier
     if (!fs.existsSync(websiteUrl)) {
         fs.mkdirSync(websiteUrl);
     }
-    //Récupère les urls
-    pages = await getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused);
-    console.log('Récupération des urls des pages terminée');
-    //Write url list to csv
-    fs.writeFile(websiteUrl+"/urlList.txt", JSON.stringify(pages[0]), "utf-8", (err) => {
-        if (err) console.log(err);
-        else console.log("Url list saved");
-    });
-    
-    let urlListTemp = [];
-    urlListTemp.push(...pages[0]);
+    //Pour éviter le crawl des urls si la liste existe déja
+    if (!fs.existsSync(websiteUrl+"/urlList.txt") || (fs.existsSync(websiteUrl+"/urlList.txt") && forceCheckUrl === 'oui' || task === "pages")) {
+        //Récupère les urls
+        pages = await getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused);
+        console.log('Récupération des urls des pages terminée');
+        //Write url list to file
+        fs.writeFile(websiteUrl+"/urlList.txt", JSON.stringify(pages[0]), "utf-8", (err) => {
+            if (err) console.log(err);
+            else console.log("Url list saved");
+        });
+        urlListTemp.push(...pages[0]);
+    }else{
+        const fileContent = fs.readFileSync(websiteUrl+"/urlList.txt");
+        urlListTemp = JSON.parse(fileContent);
+    }
 
     //Lancement du script choisi
     if(task === 'img' || task === 'all'){
@@ -402,6 +401,8 @@ scrap()
         console.log('Script terminé.');
         console.log(value)
 
+        if (task === 'pages') return
+
         //Write img list to csv
         fs.writeFile(websiteUrl+"/imgList.txt", JSON.stringify(value[0]), "utf-8", (err) => {
             if (err) console.log(err);
@@ -418,6 +419,7 @@ scrap()
             if (err) console.log(err);
             else console.log("classNotUsed list saved");
         });
+
   })
   .catch(e => console.log(`error: ${e}`))
 
