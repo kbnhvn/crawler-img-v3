@@ -15,6 +15,7 @@ let forceCheckUrl = "";
 const urlList = [];
 const urlTestedList = [];
 const imgList = [];
+const errorList = [];
 
 //Récupération des infos en console
 while(websiteUrl === ""){
@@ -29,7 +30,7 @@ if(fs.existsSync(websiteUrl+"/urlList.txt") && task !== 'pages'){
     }
 }
 
-urlList.push('https://'+websiteUrl+'/')
+urlList.push('http://'+websiteUrl+'/')
 
 function isBase64(str) {
     try {
@@ -57,24 +58,32 @@ function mergeArrays(...arrays) {
 
 //Récupération des URL
 
-const getAllUrl = async (browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused) => {
+const getAllUrl = async (browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused, errorList) => {
     if(urlList.length > 0){
         let page = await browser.newPage();
         // await page.setDefaultNavigationTimeout(0); 
         const url = urlList.shift();
         if(url){
             if(urlTestedList.includes(url)){
-                return getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused);
+                return getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused, errorList);
             }
             console.log('Check de l\'url : '+url);
             try {
                 await page.goto(url);
             } catch (err) {
                 console.error(err.message);
-                return getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused);
+                errorList.push(url + " - " + err.message)
+                return getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused, errorList);
             }
+
+            //Gestion des erreurs 500
+            const response = await page.goto(url);
+            if(response.status() !== 200){
+                errorList.push(url + " - error " + response.status())
+            }
+
             //Gestion de la page actu avec infinite scroll
-            if(url === `https://${websiteUrl}/blog/` || `https://${websiteUrl}/actualites/`){
+            if(url === `http://${websiteUrl}/blog/` || `http://${websiteUrl}/actualites/`){
                 await page.evaluate(() => new Promise((resolve) => {
                     var scrollTop = -1;
                     const interval = setInterval(() => {
@@ -90,7 +99,7 @@ const getAllUrl = async (browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnu
             }
             await page.waitForSelector('body');
             const allHrefs = await page.evaluate((websiteUrl) => {
-                let selector = 'a[href^="https://'+websiteUrl+'/"], a[href^="/"]';
+                let selector = 'a[href^="http://'+websiteUrl+'/"], a[href^="/"]';
                 console.log(selector);
                 return Array.from(document.querySelectorAll(`${selector}`),link => {
                     if(link.href.match(/(?!.+\.pdf$).+$/)) return link.href
@@ -112,13 +121,13 @@ const getAllUrl = async (browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnu
             console.log('Liste url finale : '+urlTestedList.length)
 
             await page.close();
-            return getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused);
+            return getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused, errorList);
         }else{
-            return getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused);
+            return getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused, errorList);
         }
     } else {
         console.log("scrap terminé")
-        return [urlTestedList, arrayCssUsed, arrayCssUnused];
+        return [urlTestedList, arrayCssUsed, arrayCssUnused, errorList];
     }
 }
 
@@ -345,14 +354,23 @@ const scrap = async () => {
     //Pour éviter le crawl des urls si la liste existe déja
     if (!fs.existsSync(websiteUrl+"/urlList.txt") || (fs.existsSync(websiteUrl+"/urlList.txt") && forceCheckUrl === 'oui' || task === "pages")) {
         //Récupère les urls
-        pages = await getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused);
+        pages = await getAllUrl(browser, websiteUrl, urlList, arrayCssUsed, arrayCssUnused, errorList);
         console.log('Récupération des urls des pages terminée');
         //Write url list to file
         fs.writeFile(websiteUrl+"/urlList.txt", JSON.stringify(pages[0]), "utf-8", (err) => {
             if (err) console.log(err);
             else console.log("Url list saved");
         });
+        
         urlListTemp.push(...pages[0]);
+        
+        //Write error if exist
+        if(errorList.length > 0){
+            fs.writeFile(websiteUrl+"/urlErrorList.txt", JSON.stringify(errorList), "utf-8", (err) => {
+                if (err) console.log(err);
+                else console.log("Url errors list saved");
+            });
+        }
     }else{
         const fileContent = fs.readFileSync(websiteUrl+"/urlList.txt");
         urlListTemp = JSON.parse(fileContent);
